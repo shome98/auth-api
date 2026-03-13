@@ -1,0 +1,51 @@
+services:
+
+  app:
+    build: . 
+    container_name: auth-api
+    ports:
+      - "3001:9879"      
+    # volumes:
+    #   - .:/app                       # Map local code to container
+    #   - /app/node_modules            # Anonymous volume to protect container's node_modules
+    # env_file:
+    #   - fileName
+    depends_on:
+      - postgres-db_auth-api
+      - redis_auth-api
+    networks:
+      - auth-api-net
+  postgres-db_auth-api:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: api-auth_db
+    ports:
+      - "5490:5432"
+    volumes:
+      - ./api-auth_db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d api-auth_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - auth-api-net
+
+  redis_auth-api:
+    image: redis/redis-stack:latest
+    ports:
+      - "6380:6379"
+      - "8002:8001"
+    volumes:
+      - ./redis-auth-api-data:/data
+    networks:
+      - auth-api-net
+
+networks:
+  auth-api-net:
+    external: true
+    name: shared-crud-api-network
+    # driver: bridge
