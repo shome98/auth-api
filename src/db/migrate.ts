@@ -1,10 +1,12 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
-import { env } from '../config/env';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 async function main() {
-  const url = env.DATABASE_URL;
+  const url = process.env.DATABASE_URL;
   if (!url) {
     console.error('❌ DATABASE_URL is not set.');
     process.exit(1);
