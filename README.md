@@ -489,5 +489,3 @@ EMAIL_FROM=noreply@example.com
 ---
 
 ## 📄 License
-
-MIT
