@@ -10,7 +10,7 @@
     "build": "tsc",
     "start": "node dist/api/index.js",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "node -r ts-node/register src/db/migrate.ts",
+    "db:migrate": "tsx src/db/migrate.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "docker:pre-run": "npm run db:generate && npm run db:migrate"
