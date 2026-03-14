@@ -16,7 +16,7 @@ COPY package*.json ./
 RUN chown -R api-auth-user:api-auth-group /app
 
 # create logs directory and change ownership
-RUN mkdir -p /app/logs && chown -R api-mongo-user:api-mongo-group /app
+RUN mkdir -p /app/logs && chown -R api-auth-user:api-auth-group /app
 
 # install dependencies
 # We run install BEFORE copying the rest of the code so it doesn't re-run on every code change
