@@ -70,18 +70,32 @@ app.use((req, res, next) => {
 //  Rate limiting
 app.use(globalLimiter);
 
+app.get('/', (req: Request, res: Response) => {
+  res.status(200).json({
+    success: true,
+    message: "😊 Welcome, let's sign in!",
+    status: 'ok',
+    environment: env.NODE_ENV,
+    timestamp: new Date().toISOString(),
+    uptime: `${Math.floor(process.uptime())}s`,
+  });
+});
 //  Health check
 app.get('/healthz', (_req, res) => {
   res.status(200).json({
-    status: '✅ Healthy',
-    uptime: process.uptime(),
+    success: true,
+    status: 'Ok',
+    message: '✅ Healthy',
+    uptime: `${Math.floor(process.uptime())}s`,
     timestamp: new Date().toISOString(),
   });
 });
 app.get('/readyz', (_req, res) => {
   res.status(200).json({
-    status: '🚀 Ready',
-    uptime: process.uptime(),
+    success: true,
+    status: 'Ok',
+    message: '🚀 Ready',
+    uptime: `${Math.floor(process.uptime())}s`,
     timestamp: new Date().toISOString(),
   });
 });
