@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import crypto from 'crypto';
-import { env } from './config/env';
+import { env, getClientUrls } from './config/env';
 import { globalLimiter } from './middleware/rate-limiter';
 import { errorHandler } from './middleware/error-handler';
 import authRoutes from './routes/auth.routes';
@@ -41,8 +41,8 @@ app.use((req, res, next) => {
 //  Security
 app.use(helmet());
 
-// Support comma-separated origins: CLIENT_URL="http://localhost:5173,https://admin.example.com"
-const allowedOrigins = env.CLIENT_URL.split(',').map((s) => s.trim());
+// Support either a single redirect URL or a dedicated comma-separated allowlist.
+const allowedOrigins = getClientUrls();
 app.use(
   cors({
     origin: allowedOrigins,

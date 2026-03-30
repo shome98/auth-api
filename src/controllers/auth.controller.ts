@@ -15,11 +15,13 @@ import {
   getClearRefreshTokenOptions,
 } from '../utils/cookie';
 import { generateToken } from '../utils/crypto';
-import { env } from '../config/env';
+import { env, getAllowedClientUrl, getPrimaryClientUrl } from '../config/env';
 
 // 🔐 Auth Controller
 
 class AuthController {
+  private readonly clientUrl = getPrimaryClientUrl();
+
   // POST /api/auth/register
   register = async (
     req: Request,
@@ -219,7 +221,16 @@ class AuthController {
     try {
       // Generate CSRF state to prevent login CSRF attacks
       const state = generateToken(16);
+      const redirectUrl = this.resolveClientUrl(req);
+
       res.cookie('oauth_state', state, {
+        httpOnly: true,
+        secure: env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 10 * 60 * 1000, // 10 minutes
+        path: '/',
+      });
+      res.cookie('oauth_redirect', redirectUrl, {
         httpOnly: true,
         secure: env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -238,11 +249,19 @@ class AuthController {
   googleCallback = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { code, error: oauthError, state } = req.query;
+      const redirectUrl =
+        getAllowedClientUrl(req.cookies?.oauth_redirect) ?? this.clientUrl;
 
       // User denied access or other Google-side error
       if (oauthError) {
+        res.clearCookie('oauth_redirect', {
+          httpOnly: true,
+          secure: env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          path: '/',
+        });
         return res.redirect(
-          `${env.CLIENT_URL}/auth/error?message=${encodeURIComponent(
+          `${redirectUrl}/auth/error?message=${encodeURIComponent(
             String(oauthError),
           )}`,
         );
@@ -254,6 +273,12 @@ class AuthController {
         throw new BadRequestError('❌ Invalid OAuth state. Please try again.');
       }
       res.clearCookie('oauth_state', {
+        httpOnly: true,
+        secure: env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+      });
+      res.clearCookie('oauth_redirect', {
         httpOnly: true,
         secure: env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -291,11 +316,28 @@ class AuthController {
       await this.cleanupGuest(req, res);
 
       // Redirect to client app
-      return res.redirect(env.CLIENT_URL);
+      return res.redirect(redirectUrl);
     } catch (error) {
       next(error);
     }
   };
+
+  private resolveClientUrl(req: Request) {
+    const candidateHeaders = [
+      req.get('origin'),
+      req.get('referer'),
+      req.get('referrer'),
+    ];
+
+    for (const headerValue of candidateHeaders) {
+      const allowedUrl = getAllowedClientUrl(headerValue);
+      if (allowedUrl) {
+        return allowedUrl;
+      }
+    }
+
+    return this.clientUrl;
+  }
 
   // POST /api/auth/refresh
   // Called by the client when access_token has expired.
