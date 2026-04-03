@@ -1,37 +1,44 @@
-# set the image
-FROM node:20-alpine AS app-builder
+# --- Stage 1: Base ---
+FROM node:alpine AS base
 
-# crreate user group and and adduser to the group
 RUN addgroup -S api-auth-group && adduser -S -G api-auth-group api-auth-user
-
-# create workdir (Docker creates this as root by default)
+# # Debian-style user creation
+# RUN groupadd -r api-auth-group && useradd -r -g api-auth-group api-auth-user
 WORKDIR /app
+# Pre-set ownership of the workdir
+RUN chown api-auth-user:api-auth-group /app
+COPY --chown=api-auth-user:api-auth-group package*.json ./
 
-# copy package json and package-lock.json files
-# We copy these first to leverage Docker's layer caching
-COPY package*.json ./
-
-# change the ownership of currect directory to use:group directory
-# We do this while still root so we have the permissions to change it
-RUN chown -R api-auth-user:api-auth-group /app
-
-# create logs directory and change ownership
-RUN mkdir -p /app/logs && chown -R api-auth-user:api-auth-group /app
-
-# install dependencies
-# We run install BEFORE copying the rest of the code so it doesn't re-run on every code change
+# --- Stage 2: Development ---
+FROM base AS development
 RUN npm install --legacy-peer-deps
-
-# copy other files
-# The --chown flag here ensures files are copied with correct permissions immediately
 COPY --chown=api-auth-user:api-auth-group . .
-
-# change the user from root
-# We switch to the non-root user last so it is active for the CMD and runtime
+# Create logs dir for dev environment
+RUN mkdir -p /app/logs && chown api-auth-user:api-auth-group /app/logs
 USER api-auth-user
+EXPOSE 9879
+CMD ["npm", "run", "dev"]
 
-# expose the port to listen
+# --- Stage 3: Build (Intermediate) ---
+FROM development AS builder
+# RUN npm run docker:pre-run
+USER root
+RUN npm run build
+RUN npm prune --omit=dev --legacy-peer-deps
+
+# --- Stage 4: Production ---
+FROM base AS production
+ENV NODE_ENV=production
+
+# Copy artifacts from builder
+COPY --from=builder --chown=api-auth-user:api-auth-group /app/node_modules ./node_modules
+COPY --from=builder --chown=api-auth-user:api-auth-group /app/dist ./dist
+
+# CRITICAL: Re-create and permission the logs directory in the final image
+RUN mkdir -p /app/logs && chown api-auth-user:api-auth-group /app/logs
+
+USER api-auth-user
 EXPOSE 9879
 
-# start the app
-CMD ["npm", "run", "dev"]
+# Using 'node' directly is more memory-efficient than 'npm start'
+CMD ["npm", "run","start"]
