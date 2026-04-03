@@ -20,7 +20,7 @@ RUN mkdir -p /app/logs && chown -R api-auth-user:api-auth-group /app
 
 # install dependencies
 # We run install BEFORE copying the rest of the code so it doesn't re-run on every code change
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 # copy other files
 # The --chown flag here ensures files are copied with correct permissions immediately
