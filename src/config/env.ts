@@ -27,6 +27,13 @@ const envSchema = z.object({
   SMTP_PASS: z.string().optional(),
   EMAIL_FROM: z.string().default('Auth API <noreply@authapi.com>'),
 
+  // Email Providers
+  // Resend (production) - https://resend.com
+  RESEND_API_KEY: z.string().optional(),
+  // Mailtrap (development) - https://mailtrap.io
+  MAILTRAP_TOKEN: z.string().optional(),
+  MAILTRAP_INBOX_ID: z.coerce.number().optional(),
+
   // Google OAuth (optional — feature disabled when not set)
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
@@ -74,10 +81,7 @@ const normalizeUrl = (value: string) => value.trim().replace(/\/+$/, '');
 export const getClientUrls = () => {
   const configured = env.CLIENT_URLS ?? env.CLIENT_URL;
 
-  return configured
-    .split(',')
-    .map(normalizeUrl)
-    .filter(Boolean);
+  return configured.split(',').map(normalizeUrl).filter(Boolean);
 };
 
 export const getPrimaryClientUrl = () => {
