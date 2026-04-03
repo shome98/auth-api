@@ -33,6 +33,7 @@ class AuthController {
       const user = await authService.register(email, password, name, {
         ipAddress: req.ip ?? 'unknown',
         userAgent: req.headers['user-agent'] ?? 'unknown',
+        clientUrl: this.resolveClientUrl(req),
       });
 
       // [SESSION] Create PG session — kept for reference
@@ -168,7 +169,10 @@ class AuthController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      await authService.resendVerification(req.body.email);
+      await authService.resendVerification(
+        req.body.email,
+        this.resolveClientUrl(req),
+      );
       ApiResponse.ok(res, MSG.VERIFICATION_SENT);
     } catch (error) {
       next(error);
@@ -182,7 +186,10 @@ class AuthController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      await authService.forgotPassword(req.body.email);
+      await authService.forgotPassword(
+        req.body.email,
+        this.resolveClientUrl(req),
+      );
       ApiResponse.ok(res, MSG.PASSWORD_RESET_SENT);
     } catch (error) {
       next(error);

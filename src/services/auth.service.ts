@@ -31,7 +31,7 @@ class AuthService {
     email: string,
     password: string,
     name?: string,
-    meta?: { ipAddress: string; userAgent: string },
+    meta?: { ipAddress: string; userAgent: string; clientUrl?: string },
   ) {
     const normalizedEmail = email.toLowerCase().trim();
 
@@ -57,7 +57,7 @@ class AuthService {
       if (error?.code === '23505') {
         // Send a notification to the existing account holder instead
         await emailService
-          .sendAccountExistsEmail(normalizedEmail)
+          .sendAccountExistsEmail(normalizedEmail, meta?.clientUrl)
           .catch(() => {});
         return {
           id: 'redacted',
@@ -80,7 +80,11 @@ class AuthService {
     });
 
     // Send verification email (non-blocking in dev)
-    await emailService.sendVerificationEmail(user.email, token);
+    await emailService.sendVerificationEmail(
+      user.email,
+      token,
+      meta?.clientUrl,
+    );
 
     // Record successful registration activity
     if (meta) {
@@ -207,7 +211,7 @@ class AuthService {
   }
 
   // ── Resend Verification ────────────────────────────────
-  async resendVerification(email: string) {
+  async resendVerification(email: string, clientUrl?: string) {
     const user = await db.query.users.findFirst({
       where: eq(users.email, email.toLowerCase().trim()),
     });
@@ -230,11 +234,11 @@ class AuthService {
       expiresAt: new Date(Date.now() + TOKEN_EXPIRY.VERIFICATION),
     });
 
-    await emailService.sendVerificationEmail(user.email, token);
+    await emailService.sendVerificationEmail(user.email, token, clientUrl);
   }
 
   // ── Forgot Password ───────────────────────────────────
-  async forgotPassword(email: string) {
+  async forgotPassword(email: string, clientUrl?: string) {
     const user = await db.query.users.findFirst({
       where: eq(users.email, email.toLowerCase().trim()),
     });
@@ -254,7 +258,7 @@ class AuthService {
       expiresAt: new Date(Date.now() + TOKEN_EXPIRY.PASSWORD_RESET),
     });
 
-    await emailService.sendPasswordResetEmail(user.email, token);
+    await emailService.sendPasswordResetEmail(user.email, token, clientUrl);
   }
 
   // ── Reset Password ────────────────────────────────────
