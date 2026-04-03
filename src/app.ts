@@ -16,18 +16,6 @@ const server = app.listen(env.PORT, () => {
   logger.info(`🔗 URL: ${env.APP_URL.padEnd(36)}`);
   logger.info(`💚 Health: ${(env.APP_URL + '/healthz').padEnd(36)}`);
   logger.info(`🚀 Ready: ${(env.APP_URL + '/readyz').padEnd(36)}`);
-  console.log('');
-  console.log('╔═══════════════════════════════════════════════════════╗');
-  console.log('║                                                       ║');
-  console.log('║   🔐  Personal Auth API                               ║');
-  console.log('║                                                       ║');
-  console.log(`║   📡  Port:        ${String(env.PORT).padEnd(36)}║`);
-  console.log(`║   🌍  Environment: ${env.NODE_ENV.padEnd(36)}║`);
-  console.log(`║   🔗  URL:         ${env.APP_URL.padEnd(36)}║`);
-  console.log(`║   💚  Health:      ${(env.APP_URL + '/health').padEnd(36)}║`);
-  console.log('║                                                       ║');
-  console.log('╚═══════════════════════════════════════════════════════╝');
-  console.log('');
 });
 
 // Periodic cleanup (every hour)
