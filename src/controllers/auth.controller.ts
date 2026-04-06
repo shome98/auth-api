@@ -1,9 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
+import { eq } from 'drizzle-orm';
 import { authService } from '../services/auth.service';
 import { sessionService } from '../services/session.service';
 import { guestService } from '../services/guest.service';
 import { googleOAuthService } from '../services/google-oauth.service';
 import { tokenService } from '../services/token.service';
+import { db } from '../db';
+import { users } from '../db/schema';
 import { ApiResponse } from '../utils/api-response';
 import { BadRequestError, UnauthorizedError } from '../utils/api-error';
 import { COOKIE_NAMES, JWT_COOKIE_NAMES, MSG } from '../utils/constants';
@@ -51,7 +54,13 @@ class AuthController {
         req.ip ?? undefined,
         req.headers['user-agent'],
       );
-      await this.issueTokenPair(res, user.id, session.rawToken, user.role);
+      await this.issueTokenPair(
+        res,
+        user.id,
+        session.rawToken,
+        user.role,
+        user.email,
+      );
 
       // Clean up guest session if applicable
       await this.cleanupGuest(req, res);
@@ -89,7 +98,13 @@ class AuthController {
         req.ip ?? undefined,
         req.headers['user-agent'],
       );
-      await this.issueTokenPair(res, user.id, session.rawToken, user.role);
+      await this.issueTokenPair(
+        res,
+        user.id,
+        session.rawToken,
+        user.role,
+        user.email,
+      );
       //
 
       // Merge guest → user
@@ -316,7 +331,13 @@ class AuthController {
         req.ip ?? undefined,
         req.headers['user-agent'],
       );
-      await this.issueTokenPair(res, user.id, session.rawToken, user.role);
+      await this.issueTokenPair(
+        res,
+        user.id,
+        session.rawToken,
+        user.role,
+        user.email,
+      );
       //
 
       // Clean up guest session
@@ -391,11 +412,24 @@ class AuthController {
       // Issue new access + refresh token pair (rotation — same family)
       // Passing stored.family preserves the chain for theft detection
       // Passing stored.role avoids a DB lookup during silent refresh
+      let email = stored.email;
+      if (!email) {
+        const user = await db.query.users.findFirst({
+          where: eq(users.id, stored.userId),
+        });
+        email = user?.email;
+      }
+
+      if (!email) {
+        throw new UnauthorizedError(MSG.UNAUTHORIZED);
+      }
+
       await this.issueTokenPair(
         res,
         stored.userId,
         stored.sessionToken,
         stored.role,
+        email,
         stored.family,
       );
 
@@ -424,11 +458,12 @@ class AuthController {
     userId: string,
     sessionToken: string,
     role: string,
+    email: string,
     family?: string,
   ) {
     // Access token — short lived JWT
     const { token: accessToken, expiresIn: accessMaxAge } =
-      tokenService.generateAccessToken(userId, sessionToken, role);
+      tokenService.generateAccessToken(userId, sessionToken, role, email);
 
     // Refresh token — opaque, stored in Redis
     // Read expiry from env so cookie maxAge stays in sync with Redis TTL
@@ -436,6 +471,7 @@ class AuthController {
       userId,
       sessionToken,
       role,
+      email,
       family, // Fix Issue 3: preserves family across rotations
     );
     const refreshMaxAge = tokenService.getRefreshMaxAgeMs(); // Fix Issue 4

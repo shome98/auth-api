@@ -25,6 +25,7 @@ const BLOCKLIST_PREFIX = 'blocked:';
 // ── JWT payload shape ─────────────────────────────────────
 export interface AccessTokenPayload {
   userId: string;
+  email?: string;
   /** Raw session token from the PG sessions table (passed through for other services) */
   sessionToken: string;
   /** Unique token ID — used for blocklisting on logout */
@@ -42,6 +43,7 @@ export interface AccessTokenPayload {
 
 export interface RefreshTokenData {
   userId: string;
+  email?: string;
   sessionToken: string;
   /**
    * User role — carried through token rotation so that re-issued access
@@ -70,6 +72,7 @@ class TokenService {
     userId: string,
     sessionToken: string,
     role: string,
+    email: string,
   ): { token: string; jti: string; expiresIn: number } {
     const jti = crypto.randomUUID();
     const expiresIn = env.JWT_EXPIRES_IN; // e.g. "15m"
@@ -78,6 +81,7 @@ class TokenService {
     // Do NOT also add jti to the payload object; that would duplicate the claim.
     const payload: Omit<AccessTokenPayload, 'jti'> = {
       userId,
+      email,
       sessionToken,
       role,
     };
@@ -134,6 +138,7 @@ class TokenService {
     userId: string,
     sessionToken: string,
     role: string,
+    email: string,
     family?: string,
   ): Promise<string> {
     const rawToken = generateSecureToken(64);
@@ -144,6 +149,7 @@ class TokenService {
 
     const data: RefreshTokenData = {
       userId,
+      email,
       sessionToken,
       role,
       family: tokenFamily,
