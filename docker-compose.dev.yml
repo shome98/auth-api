@@ -21,16 +21,14 @@ services:
   postgres-db_auth-api:
     image: postgres:16-alpine
     restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: api-auth_db
+    env_file:
+      - ./.env
     ports:
       - "5490:5432"
     volumes:
       - ./api-auth_db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d api-auth_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
