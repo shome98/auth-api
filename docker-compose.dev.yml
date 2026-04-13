@@ -12,7 +12,7 @@ services:
       - /app/node_modules            # Anonymous volume to protect container's node_modules
       - ./logs:/app/logs
     env_file:
-      - ./.env
+      - ${ENV_PATH:-./.env}
     depends_on:
       - postgres-db_auth-api
       - redis_auth-api
@@ -22,7 +22,7 @@ services:
     image: postgres:16-alpine
     restart: always
     env_file:
-      - ./.env
+      - ${ENV_PATH:-./.env}
     ports:
       - "5490:5432"
     volumes:
