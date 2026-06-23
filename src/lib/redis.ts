@@ -13,6 +13,7 @@ let redisClient: Redis | null = null;
 
 export function getRedisClient(): Redis {
   if (!redisClient) {
+    const isTls = env.REDIS_URL.startsWith('rediss://');
     redisClient = new Redis(env.REDIS_URL, {
       password: env.REDIS_PASSWORD || undefined,
       lazyConnect: true,
@@ -21,6 +22,11 @@ export function getRedisClient(): Redis {
         // Exponential backoff capped at 5s
         return Math.min(times * 200, 5000);
       },
+      ...(isTls && {
+        tls: {
+          rejectUnauthorized: false,
+        },
+      }),
     });
 
     redisClient.on('connect', () => {
